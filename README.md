@@ -25,10 +25,6 @@ client := httpclient.New(
     httpclient.Response(
         httpclient.NewDumpResponse(),
     ),
-    //Client Transport
-    httpclient.Transport(
-        //...
-    ),
 )
 //Do 
 rsp, err := client.Do(context.TODO())
