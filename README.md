@@ -1,6 +1,6 @@
 httpclient
 ===
-[![GoDoc](https://godoc.org/github.com/x-mod/httpclient?status.svg)](https://godoc.org/github.com/x-mod/httpclient) [![Go Report Card](https://goreportcard.com/badge/github.com/x-mod/httpclient)](https://goreportcard.com/report/github.com/x-mod/httpclient) 
+[![Build Status](https://travis-ci.org/x-mod/httpclient.svg?branch=master)](https://travis-ci.org/x-mod/httpclient) [![Go Report Card](https://goreportcard.com/badge/github.com/x-mod/httpclient)](https://goreportcard.com/report/github.com/x-mod/httpclient) [![Coverage Status](https://coveralls.io/repos/github/x-mod/httpclient/badge.svg?branch=master)](https://coveralls.io/github/x-mod/httpclient?branch=master) [![GoDoc](https://godoc.org/github.com/x-mod/httpclient?status.svg)](https://godoc.org/github.com/x-mod/httpclient) 
 
 More smooth package for http operations as a client:
 
