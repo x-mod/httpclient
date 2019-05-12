@@ -6,6 +6,7 @@ import (
 	"log"
 	"net"
 	"net/http"
+	"net/url"
 	"time"
 
 	"github.com/x-mod/errors"
@@ -18,6 +19,8 @@ var (
 	DefaultMaxIdleConnsPerHost = 8
 	//DefaultClientTimeout default client timeout for each do request
 	DefaultClientTimeout = 30 * time.Second
+	//DefaultTLSHandhakeTimeout default client tls hands hake timeout
+	DefaultTLSHandhakeTimeout = 10 * time.Second
 )
 
 //DefaultTLSConfig default tls.config is nil
@@ -36,13 +39,6 @@ type Opt func(*config)
 func Request(builder *RequestBuilder) Opt {
 	return func(cf *config) {
 		cf.request = builder
-	}
-}
-
-//Transport opt, When this option is SET, Timeout/MaxConnsPerHost/MaxIdleConnsPerHost option will be IGNORED!!!
-func Transport(transport http.RoundTripper) Opt {
-	return func(cf *config) {
-		cf.transport = transport
 	}
 }
 
@@ -82,6 +78,13 @@ func ExecuteRetry(retry int) Opt {
 func Credential(cred *tls.Config) Opt {
 	return func(cf *config) {
 		cf.credential = cred
+	}
+}
+
+//Proxy opt
+func Proxy(host string) Opt {
+	return func(cf *config) {
+		cf.proxy = host
 	}
 }
 
@@ -130,6 +133,20 @@ func Response(processor ResponseProcessor) Opt {
 	}
 }
 
+//Transport opt, When this option is SET, Timeout/MaxConnsPerHost/MaxIdleConnsPerHost option will be IGNORED!!!
+func Transport(transport http.RoundTripper) Opt {
+	return func(cf *config) {
+		cf.transport = transport
+	}
+}
+
+//HTTPClient opt, when this option is SET, All above option will ignore
+func HTTPClient(client *http.Client) Opt {
+	return func(cf *config) {
+		cf.client = client
+	}
+}
+
 //New client
 func New(opts ...Opt) *Client {
 	cf := &config{
@@ -138,6 +155,7 @@ func New(opts ...Opt) *Client {
 		timeout:             DefaultClientTimeout,
 		maxConnsPerHost:     DefaultMaxConnsPerHost,
 		maxIdleConnsPerHost: DefaultMaxIdleConnsPerHost,
+		tlsHandsHakeTimeout: DefaultTLSHandhakeTimeout,
 	}
 	for _, opt := range opts {
 		opt(cf)
@@ -148,6 +166,9 @@ func New(opts ...Opt) *Client {
 
 //get client from config
 func getClient(cf *config) *http.Client {
+	if cf.client != nil {
+		return cf.client
+	}
 	tr := &http.Transport{
 		DialContext: (&net.Dialer{
 			Timeout:   cf.timeout,   //must less then config.timeout
@@ -155,11 +176,17 @@ func getClient(cf *config) *http.Client {
 			DualStack: true,
 		}).DialContext,
 		TLSClientConfig:     cf.credential,
+		TLSHandshakeTimeout: cf.tlsHandsHakeTimeout,
 		MaxConnsPerHost:     cf.maxConnsPerHost,
 		MaxIdleConnsPerHost: cf.maxIdleConnsPerHost,
 	}
 	if cf.dialer != nil {
 		tr.DialContext = cf.dialer
+	}
+	if len(cf.proxy) > 0 {
+		if u, err := url.Parse(cf.proxy); err == nil {
+			tr.Proxy = http.ProxyURL(u)
+		}
 	}
 	client := &http.Client{
 		Transport: tr,
@@ -169,6 +196,16 @@ func getClient(cf *config) *http.Client {
 		client.Transport = cf.transport
 	}
 	return client
+}
+
+//GetTransport get standard http.RoundTripper Transport
+func (c *Client) GetTransport() http.RoundTripper {
+	return c.Client.Transport
+}
+
+//GetClient get standard http.Client
+func (c *Client) GetClient() *http.Client {
+	return c.Client
 }
 
 //Close Client release connection resource

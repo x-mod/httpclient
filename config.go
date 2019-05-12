@@ -7,17 +7,20 @@ import (
 )
 
 type config struct {
+	proxy               string
 	request             *RequestBuilder
 	response            ResponseProcessor
-	transport           http.RoundTripper
 	timeout             time.Duration
 	keepalive           time.Duration
+	tlsHandsHakeTimeout time.Duration
 	credential          *tls.Config
 	doRetries           int
 	executeRetries      int
 	maxConnsPerHost     int
 	maxIdleConnsPerHost int
 	dialer              DialContext
+	transport           http.RoundTripper
+	client              *http.Client
 }
 
 type authConfig struct {

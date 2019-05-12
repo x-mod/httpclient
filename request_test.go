@@ -1,23 +1,10 @@
 package httpclient
 
 import (
-	"encoding/json"
-	"io/ioutil"
-	"reflect"
 	"testing"
 )
 
 func TestBody_Get(t *testing.T) {
-	obj := map[string]interface{}{
-		"a": "xxx",
-		"b": 2,
-		"c": false,
-	}
-	byts, err := json.Marshal(obj)
-	if err != nil {
-		t.Errorf("Body.Get() prepare obj error = %v, wantErr %v", err, nil)
-		return
-	}
 	type fields struct {
 		config *bodyConfig
 	}
@@ -40,7 +27,6 @@ func TestBody_Get(t *testing.T) {
 					},
 				},
 			},
-			want:    byts,
 			wantErr: false,
 		},
 	}
@@ -49,14 +35,47 @@ func TestBody_Get(t *testing.T) {
 			b := &Body{
 				config: tt.fields.config,
 			}
-			got, err := b.Get()
+			_, err := b.Get()
 			if (err != nil) != tt.wantErr {
 				t.Errorf("Body.Get() error = %v, wantErr %v", err, tt.wantErr)
 				return
 			}
-			gotByts, err := ioutil.ReadAll(got)
-			if !reflect.DeepEqual(gotByts, tt.want) {
-				t.Errorf("Body.Get() = %v, want %v", got, tt.want)
+		})
+	}
+}
+
+func TestNewRequestBuilder(t *testing.T) {
+	type args struct {
+		opts []ReqOpt
+	}
+	tests := []struct {
+		name    string
+		args    args
+		wantErr bool
+	}{
+		{
+			"options",
+			args{
+				[]ReqOpt{},
+			},
+			true,
+		},
+		{
+			"options",
+			args{
+				[]ReqOpt{
+					URL("http://aa"),
+				},
+			},
+			false,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			_, err := NewRequestBuilder(tt.args.opts...).Get()
+			if (err != nil) != tt.wantErr {
+				t.Errorf("RequestBuilder.Get() error = %v, wantErr %v", err, tt.wantErr)
+				return
 			}
 		})
 	}

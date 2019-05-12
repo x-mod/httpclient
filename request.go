@@ -3,6 +3,8 @@ package httpclient
 import (
 	"io"
 	"net/http"
+
+	"github.com/x-mod/errors"
 )
 
 //RequestBuilder struct
@@ -93,6 +95,9 @@ func NewRequestBuilder(opts ...ReqOpt) *RequestBuilder {
 }
 
 func (req *RequestBuilder) makeRequest() (*http.Request, error) {
+	if len(req.config.URL) == 0 {
+		return nil, errors.New("url required")
+	}
 	//body
 	var body io.Reader
 	if req.config.Content != nil {
