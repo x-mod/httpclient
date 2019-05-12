@@ -210,7 +210,7 @@ func (c *Client) GetClient() *http.Client {
 
 //Close Client release connection resource
 func (c *Client) Close() {
-	c.CloseIdleConnections()
+	c.Client.CloseIdleConnections()
 }
 
 //Execute client
