@@ -208,11 +208,6 @@ func (c *Client) GetClient() *http.Client {
 	return c.Client
 }
 
-//Close Client release connection resource
-func (c *Client) Close() {
-	c.Client.CloseIdleConnections()
-}
-
 //Execute client
 func (c *Client) Execute(ctx context.Context) error {
 	if c.config.request == nil {

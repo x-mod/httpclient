@@ -4,6 +4,7 @@ import (
 	"context"
 	"io"
 	"io/ioutil"
+	"log"
 	"net/http"
 	"os"
 
@@ -72,6 +73,7 @@ func (d *DumpResponse) Process(ctx context.Context, rsp *http.Response) error {
 	if _, err := io.Copy(os.Stdout, rsp.Body); err != nil {
 		return err
 	}
+	log.Println("DumpResponse StatusCode:", rsp.StatusCode)
 	if rsp.StatusCode == http.StatusOK {
 		return nil
 	}
