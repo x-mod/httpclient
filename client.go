@@ -3,9 +3,11 @@ package httpclient
 import (
 	"context"
 	"crypto/tls"
+	"fmt"
 	"log"
 	"net"
 	"net/http"
+	"net/http/httputil"
 	"net/url"
 	"time"
 
@@ -34,13 +36,6 @@ type Client struct {
 
 //Opt for client
 type Opt func(*config)
-
-//Request opt
-func Request(builder *RequestBuilder) Opt {
-	return func(cf *config) {
-		cf.request = builder
-	}
-}
 
 //Timeout opt
 func Timeout(duration time.Duration) Opt {
@@ -126,17 +121,17 @@ func MaxIdleConnsPerHost(max int) Opt {
 	}
 }
 
-//Response opt
-func Response(processor ResponseProcessor) Opt {
-	return func(cf *config) {
-		cf.response = processor
-	}
-}
-
 //Transport opt, When this option is SET, Timeout/MaxConnsPerHost/MaxIdleConnsPerHost option will be IGNORED!!!
 func Transport(transport http.RoundTripper) Opt {
 	return func(cf *config) {
 		cf.transport = transport
+	}
+}
+
+//Debug opt
+func Debug(flag bool) Opt {
+	return func(cf *config) {
+		cf.debug = flag
 	}
 }
 
@@ -209,39 +204,32 @@ func (c *Client) GetClient() *http.Client {
 }
 
 //Execute client
-func (c *Client) Execute(ctx context.Context) error {
-	if c.config.request == nil {
+func (c *Client) Execute(ctx context.Context, req *http.Request, processor ResponseProcessor) error {
+	if req == nil {
 		return errors.New("request required")
 	}
-
-	req, err := c.config.request.Get()
+	if c.config.debug {
+		if b, err := httputil.DumpRequest(req, true); err == nil {
+			fmt.Println("------------------------------")
+			fmt.Println(string(b))
+			fmt.Println("------------------------------")
+		}
+	}
+	rsp, err := c.DoRequest(ctx, req)
 	if err != nil {
 		return err
 	}
-
-	return c.ExecuteRequest(ctx, req)
-}
-
-//ExecuteRequest do custom request with response processor
-func (c *Client) ExecuteRequest(ctx context.Context, req *http.Request) (err error) {
-	fn := func() error {
-		rsp, err := c.DoRequest(ctx, req)
-		if err != nil {
-			return err
-		}
-
-		if c.config.response != nil {
-			return c.config.response.Process(ctx, rsp)
-		}
-		return defaultProcess(ctx, rsp)
-	}
-	//retries for executing
-	for i := 0; i < c.config.executeRetries; i++ {
-		if err = fn(); err == nil {
-			return
+	if c.config.debug {
+		if b, err := httputil.DumpResponse(rsp, true); err == nil {
+			fmt.Println(string(b))
+			fmt.Println("------------------------------")
 		}
 	}
-	return
+
+	if processor != nil {
+		return processor.Process(ctx, rsp)
+	}
+	return nil
 }
 
 //DoRequest do request with context

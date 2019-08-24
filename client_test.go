@@ -2,6 +2,7 @@ package httpclient
 
 import (
 	"context"
+	"fmt"
 	"io"
 	"net/http"
 	"net/http/httptest"
@@ -11,7 +12,7 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestClient_ExecuteRequest(t *testing.T) {
+func TestClient_Execute(t *testing.T) {
 	ts := httptest.NewServer(
 		http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			switch r.RequestURI {
@@ -67,30 +68,37 @@ func TestClient_ExecuteRequest(t *testing.T) {
 	assert.NotNil(t, client1)
 
 	//head
-	req1, err := NewRequestBuilder(
-		URL(ts.URL+"/head"),
+	req1, err := MakeRequest(
+		SetURL(ts.URL+"/head"),
 		Header("X-HEAD", "xxx"),
-	).Get()
+	)
 	assert.NotNil(t, req1)
 	assert.Nil(t, err)
-	assert.NotNil(t, client1.ExecuteRequest(context.TODO(), req1))
 
-	req2, err := NewRequestBuilder(
-		URL(ts.URL+"/head"),
+	fn := func(ctx context.Context, rsp *http.Response) error {
+		if rsp.StatusCode != http.StatusOK {
+			return fmt.Errorf("status != 200")
+		}
+		return nil
+	}
+	assert.NotNil(t, client1.Execute(context.TODO(), req1, ResponseProcessorFunc(fn)))
+
+	req2, err := MakeRequest(
+		SetURL(ts.URL+"/head"),
 		Header("X-HEAD", "x-head-value"),
-	).Get()
+	)
 	assert.NotNil(t, req2)
 	assert.Nil(t, err)
-	assert.Nil(t, client1.ExecuteRequest(context.TODO(), req2))
+	assert.Nil(t, client1.Execute(context.TODO(), req2, nil))
 
 	//auth
-	req3, err := NewRequestBuilder(
-		URL(ts.URL+"/auth"),
+	req3, err := MakeRequest(
+		SetURL(ts.URL+"/auth"),
 		BasicAuth("jay", "123"),
-	).Get()
+	)
 	assert.NotNil(t, req3)
 	assert.Nil(t, err)
-	assert.Nil(t, client1.ExecuteRequest(context.TODO(), req3))
+	assert.Nil(t, client1.Execute(context.TODO(), req3, nil))
 
 	//sleep
 	client2 := New(
@@ -99,12 +107,12 @@ func TestClient_ExecuteRequest(t *testing.T) {
 	assert.NotNil(t, client2)
 
 	//timeout
-	req4, err := NewRequestBuilder(
-		URL(ts.URL + "/sleep"),
-	).Get()
+	req4, err := MakeRequest(
+		SetURL(ts.URL + "/sleep"),
+	)
 	assert.NotNil(t, req4)
 	assert.Nil(t, err)
-	assert.NotNil(t, client2.ExecuteRequest(context.TODO(), req4))
+	assert.NotNil(t, client2.Execute(context.TODO(), req4, nil))
 
 	//retry execute
 	client3 := New(
@@ -112,19 +120,19 @@ func TestClient_ExecuteRequest(t *testing.T) {
 		ExecuteRetry(3),
 	)
 	assert.NotNil(t, client3)
-	req5, err := NewRequestBuilder(
-		URL(ts.URL + "/sleep"),
-	).Get()
+	req5, err := MakeRequest(
+		SetURL(ts.URL + "/sleep"),
+	)
 	assert.NotNil(t, req5)
 	assert.Nil(t, err)
-	assert.NotNil(t, client2.ExecuteRequest(context.TODO(), req5))
+	assert.NotNil(t, client2.Execute(context.TODO(), req5, nil))
 
 	//ping
 	client4 := New()
 	assert.NotNil(t, client4)
-	req6, err := NewRequestBuilder(
-		URL(ts.URL + "/ping"),
-	).Get()
+	req6, err := MakeRequest(
+		SetURL(ts.URL + "/ping"),
+	)
 	assert.NotNil(t, req6)
 	assert.Nil(t, err)
 	rsp, err := client4.DoRequest(context.TODO(), req6)

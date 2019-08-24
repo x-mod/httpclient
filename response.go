@@ -3,21 +3,12 @@ package httpclient
 import (
 	"context"
 	"io"
-	"io/ioutil"
 	"log"
 	"net/http"
 	"os"
 
 	"github.com/x-mod/errors"
 )
-
-func defaultProcess(ctx context.Context, rsp *http.Response) error {
-	if rsp.StatusCode == http.StatusOK {
-		return nil
-	}
-	io.Copy(ioutil.Discard, rsp.Body)
-	return errors.CodeError(code(rsp.StatusCode))
-}
 
 //http code
 type code int

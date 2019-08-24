@@ -3,14 +3,15 @@ package httpclient
 import (
 	"io"
 	"net/http"
+	"net/url"
+	"strings"
 
 	"github.com/x-mod/errors"
 )
 
 //RequestBuilder struct
 type RequestBuilder struct {
-	config  *requestConfig
-	request *http.Request
+	config *requestConfig
 }
 
 //ReqOpt opt
@@ -19,14 +20,74 @@ type ReqOpt func(*requestConfig)
 //Method opt
 func Method(method string) ReqOpt {
 	return func(cf *requestConfig) {
-		cf.Method = method
+		cf.Method = strings.ToUpper(method)
 	}
 }
 
 //URL opt
-func URL(url string) ReqOpt {
+func SetURL(Url string) ReqOpt {
 	return func(cf *requestConfig) {
-		cf.URL = url
+		u, err := url.Parse(Url)
+		if err != nil {
+			panic(err)
+		}
+		cf.URL = u
+	}
+}
+
+//URL opt
+func URL(opts ...URLOpt) ReqOpt {
+	return func(cf *requestConfig) {
+		if cf.URL == nil {
+			cf.URL = &url.URL{}
+		}
+		for _, opt := range opts {
+			opt(cf.URL)
+		}
+	}
+}
+
+type URLOpt func(*url.URL)
+
+//URI opt
+func URI(uri string) URLOpt {
+	return func(u *url.URL) {
+		u.Path = uri
+	}
+}
+
+//Schema opt
+func Schema(schema string) URLOpt {
+	return func(u *url.URL) {
+		u.Scheme = schema
+	}
+}
+
+//User opt
+func User(user string) URLOpt {
+	return func(u *url.URL) {
+		u.User = url.User(user)
+	}
+}
+
+//UserPassword opt
+func UserPassword(username string, password string) URLOpt {
+	return func(u *url.URL) {
+		u.User = url.UserPassword(username, password)
+	}
+}
+
+//Host opt [ip:port]
+func Host(host string) URLOpt {
+	return func(u *url.URL) {
+		u.Host = host
+	}
+}
+
+//Fragment opt
+func Fragment(name string) URLOpt {
+	return func(u *url.URL) {
+		u.Fragment = name
 	}
 }
 
@@ -63,13 +124,6 @@ func BasicAuth(username string, password string) ReqOpt {
 	}
 }
 
-//Fragment opt
-func Fragment(name string) ReqOpt {
-	return func(cf *requestConfig) {
-		cf.Fragment = name
-	}
-}
-
 //Content opt
 func Content(opts ...BodyOpt) ReqOpt {
 	return func(cf *requestConfig) {
@@ -94,10 +148,25 @@ func NewRequestBuilder(opts ...ReqOpt) *RequestBuilder {
 	return &RequestBuilder{config: config}
 }
 
+//MakeRequest make a http.Request
+func MakeRequest(opts ...ReqOpt) (*http.Request, error) {
+	builder := NewRequestBuilder(opts...)
+	return builder.makeRequest()
+}
+
 func (req *RequestBuilder) makeRequest() (*http.Request, error) {
-	if len(req.config.URL) == 0 {
+	if req.config.URL == nil {
 		return nil, errors.New("url required")
 	}
+	//url
+	if len(req.config.Queries) > 0 {
+		q := req.config.URL.Query()
+		for k, v := range req.config.Queries {
+			q.Add(k, v)
+		}
+		req.config.URL.RawQuery = q.Encode()
+	}
+
 	//body
 	var body io.Reader
 	if req.config.Content != nil {
@@ -107,22 +176,13 @@ func (req *RequestBuilder) makeRequest() (*http.Request, error) {
 		}
 		body = rd
 	}
-	rr, err := http.NewRequest(req.config.Method, req.config.URL, body)
+
+	//new request
+	rr, err := http.NewRequest(req.config.Method, req.config.URL.String(), body)
 	if err != nil {
 		return nil, err
 	}
-	// queries
-	if len(req.config.Queries) > 0 {
-		q := rr.URL.Query()
-		for k, v := range req.config.Queries {
-			q.Add(k, v)
-		}
-		rr.URL.RawQuery = q.Encode()
-	}
-	// fragment
-	if len(req.config.Fragment) > 0 {
-		rr.URL.Fragment = req.config.Fragment
-	}
+
 	// content-type
 	if req.config.Content != nil {
 		rr.Header.Set("Content-Type", req.config.Content.ContentType())
@@ -139,19 +199,5 @@ func (req *RequestBuilder) makeRequest() (*http.Request, error) {
 	if req.config.Auth != nil {
 		rr.SetBasicAuth(req.config.Auth.username, req.config.Auth.password)
 	}
-	req.request = rr
 	return rr, nil
-}
-
-//Get http.Request
-func (req *RequestBuilder) Get() (*http.Request, error) {
-	if req.request == nil {
-		return req.makeRequest()
-	}
-	return req.request, nil
-}
-
-//Clear RequestBuilder
-func (req *RequestBuilder) Clear() {
-	req.request = nil
 }

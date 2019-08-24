@@ -7,6 +7,7 @@ import (
 	"net/url"
 	"strings"
 
+	"github.com/golang/protobuf/jsonpb"
 	"github.com/golang/protobuf/proto"
 	json "github.com/json-iterator/go"
 	"github.com/x-mod/errors"
@@ -117,11 +118,12 @@ func (b *Body) Get() (io.Reader, error) {
 			}
 			return bytes.NewBuffer(byts), nil
 		case "pbjson":
-			byts, err := proto.Marshal(b.config.bodyObject.(proto.Message))
-			if err != nil {
-				return nil, errors.Annotate(err, "pb marshal failed")
+			wr := bytes.NewBuffer([]byte{})
+			marshaler := &jsonpb.Marshaler{EmitDefaults: true}
+			if err := marshaler.Marshal(wr, b.config.bodyObject.(proto.Message)); err != nil {
+				return nil, errors.Annotate(err, "pbjson marshal failed")
 			}
-			return bytes.NewBuffer(byts), nil
+			return wr, nil
 		case "xml":
 			byts, err := xml.Marshal(b.config.bodyObject)
 			if err != nil {

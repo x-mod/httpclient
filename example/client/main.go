@@ -26,21 +26,17 @@ func main() {
 		httpclient.Dialer(httpclient.DebugDialer),
 		httpclient.MaxConnsPerHost(4),
 		httpclient.MaxIdleConnsPerHost(2),
-		httpclient.Request(
-			httpclient.NewRequestBuilder(
-				httpclient.URL("http://localhost:12345/hello"),
-			),
-		),
-		httpclient.Response(
-			httpclient.ResponseProcessorFunc(print),
-		),
+	)
+
+	req, _ := httpclient.MakeRequest(
+		httpclient.SetURL("http://localhost:12345/hello"),
 	)
 
 	ctx := context.TODO()
 	wg := &sync.WaitGroup{}
 	fn := func(id int) {
 		defer wg.Done()
-		if err := client.Execute(context.WithValue(ctx, _id{}, id)); err != nil {
+		if err := client.Execute(context.WithValue(ctx, _id{}, id), req, httpclient.ResponseProcessorFunc(print)); err != nil {
 			log.Println("client execute failed:", err)
 		}
 	}

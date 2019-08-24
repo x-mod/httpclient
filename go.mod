@@ -4,6 +4,7 @@ go 1.11
 
 require (
 	github.com/chzyer/readline v0.0.0-20180603132655-2972be24d48e // indirect
+	github.com/emicklei/proto v1.6.13
 	github.com/golang/protobuf v1.3.1
 	github.com/google/pprof v0.0.0-20190502144155-8358a9778bd1 // indirect
 	github.com/ianlancetaylor/demangle v0.0.0-20181102032728-5e5cf60278f6 // indirect
@@ -17,4 +18,6 @@ require (
 	golang.org/x/sys v0.0.0-20190509141414-a5b02f93d862 // indirect
 	golang.org/x/text v0.3.2 // indirect
 	golang.org/x/tools v0.0.0-20190511041617-99f201b6807e // indirect
+	google.golang.org/genproto v0.0.0-20180817151627-c66870c02cf8
+	google.golang.org/grpc v1.19.1
 )
