@@ -1,11 +1,13 @@
 package grpc
 
 import (
+	"crypto/tls"
 	"fmt"
 	"net/http"
 	"time"
 
 	"github.com/x-mod/httpclient"
+	"github.com/x-mod/tlsconfig"
 )
 
 type HTTPClient struct {
@@ -19,6 +21,8 @@ type HTTPClientCfg struct {
 	serviceName string
 	host        string
 	schema      string
+	tls         *tls.Config
+	debug       bool
 }
 
 type HTTPClientOpt func(*HTTPClient)
@@ -48,9 +52,16 @@ func Host(host string) HTTPClientOpt {
 		c.cfg.host = host
 	}
 }
-func Client(clt *httpclient.Client) HTTPClientOpt {
+func TLSConfig(opts ...tlsconfig.Option) HTTPClientOpt {
 	return func(c *HTTPClient) {
-		c.Client = clt
+		if len(opts) > 0 {
+			c.cfg.tls = tlsconfig.New(opts...)
+		}
+	}
+}
+func Debug(v bool) HTTPClientOpt {
+	return func(c *HTTPClient) {
+		c.cfg.debug = v
 	}
 }
 
@@ -60,16 +71,20 @@ func NewHTTPClient(opts ...HTTPClientOpt) *HTTPClient {
 			schema: "http",
 			host:   "127.0.0.1",
 		},
-		Client: httpclient.New(
-			httpclient.Debug(true),
-			httpclient.Keepalive(30*time.Second),
-			httpclient.MaxConnsPerHost(32),
-			httpclient.MaxIdleConnsPerHost(16),
-		),
 	}
 	for _, o := range opts {
 		o(c)
 	}
+	copts := []httpclient.Opt{
+		httpclient.Keepalive(30 * time.Second),
+		httpclient.MaxConnsPerHost(32),
+		httpclient.MaxIdleConnsPerHost(16),
+	}
+	if c.cfg.debug {
+		copts = append(copts, httpclient.Debug(true))
+	}
+	client := httpclient.New(copts...)
+	c.Client = client
 	return c
 }
 

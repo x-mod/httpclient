@@ -69,8 +69,8 @@ func ExecuteRetry(retry int) Opt {
 	}
 }
 
-//Credential for TLSConfig
-func Credential(cred *tls.Config) Opt {
+//TLSConfig for tls
+func TLSConfig(cred *tls.Config) Opt {
 	return func(cf *config) {
 		cf.credential = cred
 	}
