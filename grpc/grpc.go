@@ -83,6 +83,10 @@ func NewHTTPClient(opts ...HTTPClientOpt) *HTTPClient {
 	if c.cfg.debug {
 		copts = append(copts, httpclient.Debug(true))
 	}
+	if c.cfg.tls != nil {
+		c.cfg.schema = "https"
+		copts = append(copts, httpclient.TLSConfig(c.cfg.tls))
+	}
 	client := httpclient.New(copts...)
 	c.Client = client
 	return c

@@ -91,6 +91,14 @@ func Form(obj url.Values) BodyOpt {
 	}
 }
 
+//Reader opt
+func Reader(rd io.Reader) BodyOpt {
+	return func(cf *bodyConfig) {
+		cf.bodyType = "reader"
+		cf.bodyObject = rd
+	}
+}
+
 //TODO File opt
 // func File(file string, fieldname string) BodyOpt {
 // 	return func(cf *bodyConfig) {
@@ -133,6 +141,8 @@ func (b *Body) Get() (io.Reader, error) {
 		case "form":
 			data := b.config.bodyObject.(url.Values).Encode()
 			return strings.NewReader(data), nil
+		case "reader":
+			return b.config.bodyObject.(io.Reader), nil
 		}
 	}
 	return bytes.NewBuffer([]byte{}), nil
