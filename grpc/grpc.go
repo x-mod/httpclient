@@ -1,108 +1,80 @@
 package grpc
 
 import (
-	"crypto/tls"
+	"context"
 	"fmt"
+	"io/ioutil"
 	"net/http"
-	"time"
 
-	"github.com/x-mod/httpclient"
-	"github.com/x-mod/tlsconfig"
+	"github.com/golang/protobuf/jsonpb"
+	"github.com/golang/protobuf/proto"
+	spb "google.golang.org/genproto/googleapis/rpc/status"
 )
 
-type HTTPClient struct {
-	*httpclient.Client
-	cfg *HTTPClientCfg
+type statusError struct {
+	*spb.Status
 }
 
-type HTTPClientCfg struct {
-	version     string
-	packageName string
-	serviceName string
-	host        string
-	schema      string
-	tls         *tls.Config
-	debug       bool
+func (st *statusError) Error() string {
+	return st.Message
+}
+func (st *statusError) Value() int32 {
+	return st.Code
+}
+func (st *statusError) String() string {
+	return st.Message
 }
 
-type HTTPClientOpt func(*HTTPClient)
+type PBJSONProcessor struct {
+	data proto.Message
+}
 
-func Version(version string) HTTPClientOpt {
-	return func(c *HTTPClient) {
-		c.cfg.version = version
-	}
+func PBJSONResponse(data proto.Message) *PBJSONProcessor {
+	return &PBJSONProcessor{data: data}
 }
-func PackageName(pkg string) HTTPClientOpt {
-	return func(c *HTTPClient) {
-		c.cfg.packageName = pkg
-	}
-}
-func ServiceName(svc string) HTTPClientOpt {
-	return func(c *HTTPClient) {
-		c.cfg.serviceName = svc
-	}
-}
-func Schema(schema string) HTTPClientOpt {
-	return func(c *HTTPClient) {
-		c.cfg.schema = schema
-	}
-}
-func Host(host string) HTTPClientOpt {
-	return func(c *HTTPClient) {
-		c.cfg.host = host
-	}
-}
-func TLSConfig(opts ...tlsconfig.Option) HTTPClientOpt {
-	return func(c *HTTPClient) {
-		if len(opts) > 0 {
-			c.cfg.tls = tlsconfig.New(opts...)
+
+func (pbp *PBJSONProcessor) Process(ctx context.Context, rsp *http.Response) error {
+	defer rsp.Body.Close()
+	if rsp.StatusCode == 200 {
+		if err := jsonpb.Unmarshal(rsp.Body, pbp.data); err != nil {
+			return err
 		}
+		return nil
 	}
-}
-func Debug(v bool) HTTPClientOpt {
-	return func(c *HTTPClient) {
-		c.cfg.debug = v
+
+	st := spb.Status{}
+	if err := jsonpb.Unmarshal(rsp.Body, &st); err != nil {
+		return err
 	}
+	return &statusError{Status: &st}
 }
 
-func NewHTTPClient(opts ...HTTPClientOpt) *HTTPClient {
-	c := &HTTPClient{
-		cfg: &HTTPClientCfg{
-			schema: "http",
-			host:   "127.0.0.1",
-		},
-	}
-	for _, o := range opts {
-		o(c)
-	}
-	copts := []httpclient.Opt{
-		httpclient.Keepalive(30 * time.Second),
-		httpclient.MaxConnsPerHost(32),
-		httpclient.MaxIdleConnsPerHost(16),
-	}
-	if c.cfg.debug {
-		copts = append(copts, httpclient.Debug(true))
-	}
-	if c.cfg.tls != nil {
-		c.cfg.schema = "https"
-		copts = append(copts, httpclient.TLSConfig(c.cfg.tls))
-	}
-	client := httpclient.New(copts...)
-	c.Client = client
-	return c
+type PBProcessor struct {
+	data proto.Message
 }
 
-func (c *HTTPClient) MakeRequest(methodName string, opts ...httpclient.ReqOpt) (*http.Request, error) {
-	copts := []httpclient.ReqOpt{
-		httpclient.Method("post"),
-		httpclient.URL(
-			httpclient.Host(c.cfg.host),
-			httpclient.Schema(c.cfg.schema),
-			httpclient.URI(URIFormat(c.cfg.version, c.cfg.packageName, c.cfg.serviceName, methodName)),
-		),
+func PBResponse(data proto.Message) *PBProcessor {
+	return &PBProcessor{data: data}
+}
+
+func (pbp *PBProcessor) Process(ctx context.Context, rsp *http.Response) error {
+	defer rsp.Body.Close()
+	b, err := ioutil.ReadAll(rsp.Body)
+	if err != nil {
+		return err
 	}
-	copts = append(copts, opts...)
-	return httpclient.MakeRequest(copts...)
+	if rsp.StatusCode == 200 {
+		if err := proto.Unmarshal(b, pbp.data); err != nil {
+			return err
+		}
+		return nil
+	}
+
+	st := spb.Status{}
+	if err := proto.Unmarshal(b, &st); err != nil {
+		return err
+	}
+	return &statusError{Status: &st}
 }
 
 //default URIFormat: /v1/pkg.Service/Method
