@@ -56,10 +56,10 @@ func URI(uri string) URLOpt {
 	}
 }
 
-//Schema opt
-func Schema(schema string) URLOpt {
+//Scheme opt
+func Scheme(scheme string) URLOpt {
 	return func(u *url.URL) {
-		u.Scheme = schema
+		u.Scheme = scheme
 	}
 }
 
