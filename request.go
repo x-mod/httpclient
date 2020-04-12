@@ -124,6 +124,24 @@ func BasicAuth(username string, password string) ReqOpt {
 	}
 }
 
+//BearerAuth opt
+func BearerAuth(token string) ReqOpt {
+	return func(cf *requestConfig) {
+		cf.Token = &tokenConfig{
+			token: token,
+		}
+	}
+}
+
+//BearerAuthFunc opt
+func BearerAuthFunc(token TokenFunc) ReqOpt {
+	return func(cf *requestConfig) {
+		cf.Token = &tokenConfig{
+			tokenGet: token,
+		}
+	}
+}
+
 //Content opt
 func Content(opts ...BodyOpt) ReqOpt {
 	return func(cf *requestConfig) {
@@ -195,9 +213,17 @@ func (req *RequestBuilder) makeRequest() (*http.Request, error) {
 	for _, v := range req.config.Cookies {
 		rr.AddCookie(v)
 	}
-	// auth
+	// basic auth
 	if req.config.Auth != nil {
 		rr.SetBasicAuth(req.config.Auth.username, req.config.Auth.password)
+	}
+	// bearer auth
+	if req.config.Token != nil {
+		t := req.config.Token.token
+		if req.config.Token.tokenGet != nil {
+			t = req.config.Token.tokenGet()
+		}
+		rr.Header.Set("Authorization", strings.Join([]string{"Bearer", t}, " "))
 	}
 	return rr, nil
 }

@@ -28,6 +28,13 @@ type authConfig struct {
 	password string
 }
 
+type TokenFunc func() string
+
+type tokenConfig struct {
+	token    string
+	tokenGet TokenFunc
+}
+
 type bodyConfig struct {
 	bodyType   string
 	bodyObject interface{}
@@ -40,5 +47,6 @@ type requestConfig struct {
 	Queries map[string]string
 	Cookies []*http.Cookie
 	Auth    *authConfig
+	Token   *tokenConfig
 	Content *Body
 }
