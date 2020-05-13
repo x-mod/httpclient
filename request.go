@@ -101,7 +101,7 @@ func Query(name string, value string) ReqOpt {
 //Header opt
 func Header(name string, value string) ReqOpt {
 	return func(cf *requestConfig) {
-		cf.Headers[name] = value
+		cf.Header.Add(name, value)
 	}
 }
 
@@ -156,7 +156,6 @@ func Content(opts ...BodyOpt) ReqOpt {
 //NewRequestBuilder new
 func NewRequestBuilder(opts ...ReqOpt) *RequestBuilder {
 	config := &requestConfig{
-		Headers: make(map[string]string),
 		Queries: make(map[string]string),
 		Cookies: []*http.Cookie{},
 	}
@@ -200,14 +199,11 @@ func (req *RequestBuilder) makeRequest() (*http.Request, error) {
 	if err != nil {
 		return nil, err
 	}
+	rr.Header = req.config.Header
 
 	// content-type
 	if req.config.Content != nil {
 		rr.Header.Set("Content-Type", req.config.Content.ContentType())
-	}
-	// headers, can replace content-type
-	for k, v := range req.config.Headers {
-		rr.Header.Set(k, v)
 	}
 	// cookies
 	for _, v := range req.config.Cookies {

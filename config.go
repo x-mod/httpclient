@@ -43,7 +43,7 @@ type bodyConfig struct {
 type requestConfig struct {
 	Method  string
 	URL     *url.URL
-	Headers map[string]string
+	Header  http.Header
 	Queries map[string]string
 	Cookies []*http.Cookie
 	Auth    *authConfig

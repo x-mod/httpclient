@@ -99,12 +99,6 @@ func Reader(rd io.Reader) BodyOpt {
 	}
 }
 
-//TODO File opt
-// func File(file string, fieldname string) BodyOpt {
-// 	return func(cf *bodyConfig) {
-// 	}
-// }
-
 //Get Body io.Reader
 func (b *Body) Get() (io.Reader, error) {
 	if b.config != nil {
