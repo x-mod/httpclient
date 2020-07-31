@@ -30,6 +30,12 @@ func main() {
 
 	req, _ := httpclient.MakeRequest(
 		httpclient.SetURL("http://localhost:12345/hello"),
+		httpclient.Method("POST"),
+		httpclient.Content(
+			httpclient.JSON(map[string]interface{}{
+				"Hello": "JayL",
+			}),
+		),
 	)
 
 	ctx := context.TODO()

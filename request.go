@@ -156,6 +156,7 @@ func Content(opts ...BodyOpt) ReqOpt {
 //NewRequestBuilder new
 func NewRequestBuilder(opts ...ReqOpt) *RequestBuilder {
 	config := &requestConfig{
+		Header:  make(http.Header),
 		Queries: make(map[string]string),
 		Cookies: []*http.Cookie{},
 	}
@@ -199,7 +200,7 @@ func (req *RequestBuilder) makeRequest() (*http.Request, error) {
 	if err != nil {
 		return nil, err
 	}
-	rr.Header = req.config.Header
+	rr.Header = req.config.Header.Clone()
 
 	// content-type
 	if req.config.Content != nil {
