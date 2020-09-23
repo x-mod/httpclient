@@ -52,7 +52,7 @@ func Binary(bytes []byte) BodyOpt {
 }
 
 //JSON opt
-func JSON(obj map[string]interface{}) BodyOpt {
+func JSON(obj interface{}) BodyOpt {
 	return func(cf *bodyConfig) {
 		cf.bodyType = "json"
 		cf.bodyObject = obj
