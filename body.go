@@ -76,7 +76,7 @@ func PBJSON(obj proto.Message) BodyOpt {
 }
 
 //XML opt
-func XML(obj map[string]interface{}) BodyOpt {
+func XML(obj interface{}) BodyOpt {
 	return func(cf *bodyConfig) {
 		cf.bodyType = "xml"
 		cf.bodyObject = obj
