@@ -108,7 +108,7 @@ func (b *Body) Get() (io.Reader, error) {
 		case "binary":
 			return bytes.NewBuffer(b.config.bodyObject.([]byte)), nil
 		case "json":
-			byts, err := json.Marshal(b.config.bodyObject.(map[string]interface{}))
+			byts, err := json.Marshal(b.config.bodyObject)
 			if err != nil {
 				return nil, errors.Annotate(err, "json marshal failed")
 			}
