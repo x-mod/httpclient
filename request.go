@@ -210,6 +210,13 @@ func (req *RequestBuilder) makeRequest() (*http.Request, error) {
 	for _, v := range req.config.Cookies {
 		rr.AddCookie(v)
 	}
+	// url userinfo
+	if req.config.URL.User != nil {
+		usr := req.config.URL.User
+		if password, ok := usr.Password(); ok {
+			rr.SetBasicAuth(usr.Username(), password)
+		}
+	}
 	// basic auth
 	if req.config.Auth != nil {
 		rr.SetBasicAuth(req.config.Auth.username, req.config.Auth.password)
